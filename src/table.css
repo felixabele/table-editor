@@ -1,0 +1,96 @@
+table th,
+table td {
+  border: 1px solid black;
+}
+
+.scrivito-table-editor {
+  overflow: visible !important;
+}
+
+.scrivito-table-editor tr td,
+.scrivito-table-editor tr th {
+  position: relative;
+}
+
+.scrivito-table-editor tr .highlight {
+  background-color: rgba(147, 187, 44, 0.2);
+}
+
+.scrivito-table-editor tr .highlight-delete,
+.scrivito-table-editor tr.highlight-delete td,
+.scrivito-table-editor tr.highlight-delete th {
+  background-color: rgba(215, 40, 40, 0.3);
+}
+
+.scrivito-table-editor tr .highlight-merge,
+.scrivito-table-editor tr.highlight-merge td,
+.scrivito-table-editor tr.highlight-merge th {
+  background-color: rgba(180, 180, 180, 0.2);
+}
+
+.scrivito-table-editor tr.highlight-bottom td,
+.scrivito-table-editor tr.highlight-bottom th {
+  border-bottom: 3px solid rgba(67,148,57,0.8);
+}
+
+.scrivito-table-editor tr.highlight-top td,
+.scrivito-table-editor tr.highlight-top th {
+  border-top: 3px solid rgba(67,148,57,0.8);
+}
+
+.scrivito-table-editor tr .highlight-left {
+  border-left: 3px solid rgba(67,148,57,0.8);
+}
+
+.scrivito-table-editor tr .highlight-right {
+  border-right: 3px solid rgba(67,148,57,0.8);
+}
+
+#table_editor_cell_menu a {
+  position: absolute;
+  padding: inherit;
+  cursor: pointer;
+  height: 16px;
+  width: 16px;
+  line-height: 16px;
+  background-color: rgba(67,148,57,0.5);
+  z-index: 30;
+  text-align: center;
+  color: #fff;
+  border-radius: 3px;
+}
+
+#table_editor_cell_menu {
+  position: absolute;
+}
+
+.table-editor-toggle-menu {
+  float: left;
+}
+
+#table_editor_table_menu {
+  margin-bottom: 10px;
+}
+
+#table_editor_table_menu a {
+  margin-right: 4px;
+}
+
+#table_editor_cell_menu .add_row_below  { bottom: -8px; left: calc(50% - 8px); }
+#table_editor_cell_menu .add_row_top    { top: -8px; left: calc(50% - 8px); }
+#table_editor_cell_menu .add_col_left   { bottom: calc(50% - 8px); left: -8px; }
+#table_editor_cell_menu .add_col_right  { top: calc(50% - 8px); right: -8px; }
+#table_editor_cell_menu .merge_left     { bottom: calc(50% - 8px); left: -26px; }
+#table_editor_cell_menu .merge_right    { top: calc(50% - 8px); right: -26px; }
+#table_editor_cell_menu .merge_bottom   { bottom: -8px; left: calc(50% - 26px); }
+#table_editor_cell_menu .delete_column  { bottom: -8px; left: calc(50% + 10px); }
+#table_editor_cell_menu .delete_row     { bottom: -8px; left: -8px }
+#table_editor_cell_menu .cell_styles    { top: -8px; left: -8px; }
+#table_editor_cell_menu .split_column   { top: -8px; right: -8px; }
+
+
+#table_editor_cell_styles {
+  position: absolute;
+  z-index: 31;
+  background: rgba(255, 255, 255, 0.8);
+}
