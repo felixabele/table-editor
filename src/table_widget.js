@@ -273,20 +273,24 @@ $(function() {
         });
       }
 
+      var highlightMerge = function(targets) {
+        if (targets != undefined) {
+          $.each(targets, function() {
+            this.element.addClass('highlight-merge');
+          });
+        }
+      }
+
       var handleMergeRight = function() {
-        var targets = table.mergeRightTargets(table.activeCell.row_index, table.activeCell.col_index);
-        $.each(targets, function() {
-          this.element.addClass('highlight-merge');
-        });
+        highlightMerge(
+          table.mergeRightTargets(table.activeCell.row_index, table.activeCell.col_index)
+        );
       }
 
       var handleMergeLeft = function() {
-        var target = table.matrix[table.activeCell.row_index][table.activeCell.col_index-1];
-        if (target != undefined) {
-          $.each(table.activeCell.allCells(), function(_, cell) {
-            table.matrix[cell.row_index][target.col_index].element.addClass('highlight-merge');
-          });
-        }
+        highlightMerge(
+          table.mergeLeftTargets(table.activeCell.row_index, table.activeCell.col_index)
+        );
       }
 
       var events = {
@@ -326,23 +330,37 @@ $(function() {
     },
 
     _getNextVisibleCell: function(row_index, col_index) {
+      var origin = this.matrix[row_index][col_index];
+
       if ((this.matrix[row_index].length-1) == col_index)
         return undefined;
 
       for (var i=(col_index+1); i<this.matrix[row_index].length; i++) {
-        if (this.matrix[row_index][i].isVisible()) {
-          return this.matrix[row_index][i];
+        var cell = this.matrix[row_index][i];
+
+        if (cell.isVisible()) {
+          return cell;
+        } else if (_.isObject(cell.mergedBy) && (origin != cell.mergedBy)) {
+          return cell.mergedBy;
         }
       }
       return undefined;
     },
 
     _getPreviousVisibleCell: function(row_index, col_index) {
-      if (col_index == 0) return undefined;
+      var origin = this.matrix[row_index][col_index];
+
+      if (col_index == 0)
+        return undefined;
 
       for (var i=(col_index-1); i>=0; i--) {
-        if (this.matrix[row_index][i].isVisible())
-          return this.matrix[row_index][i];
+        var cell = this.matrix[row_index][i];
+
+        if (cell.isVisible()) {
+          return cell;
+        } else if (_.isObject(cell.mergedBy) && (origin != cell.mergedBy)) {
+          return cell.mergedBy;
+        }
       }
       return undefined;
     },
@@ -480,14 +498,18 @@ $(function() {
           return this.row_index +'/'+ this.col_index;
         },
 
-        samePosition(other_cell) {
+        samePosition: function(other_cell) {
           return (
             (other_cell.col_index == this.col_index) &&
             (other_cell.row_index == this.row_index)
           )
         },
 
-        // returns a two dimensional Array with spanning cell-indeces
+        unmerged: function() {
+          return ((this.colspan == 1) && (this.rowspan == 1));
+        },
+
+        // returns a two dimensional Array with spaning cell-indeces
         spaningCells: function() {
           var s_cells = [],
               self = this;
@@ -602,88 +624,67 @@ $(function() {
       this.matrix.splice(index, 1);
     },
 
-    mergeRightTargets: function(cell_row_index, cell_col_index) {
-      var table  = this,
-          target = this._getNextVisibleCell(cell_row_index, cell_col_index),
-          origin = this.matrix[cell_row_index][cell_col_index];
-
-      return origin.allCells().map(function(cell) {
-        return table.matrix[cell.row_index][target.col_index];
+    mergeHorizontalTargets: function(origin, target) {
+      var table = this;
+      return origin.rowIndeces().map(function(row_idx) {
+        return table.matrix[row_idx][target.col_index];
       });
+    },
+
+    mergeRightTargets: function(cell_row_index, cell_col_index) {
+      var target = this._getNextVisibleCell(cell_row_index, cell_col_index),
+          origin = this.matrix[cell_row_index][cell_col_index];
+      return this.mergeHorizontalTargets(origin, target);
+    },
+
+    mergeLeftTargets: function(cell_row_index, cell_col_index) {
+      var target = this._getPreviousVisibleCell(cell_row_index, cell_col_index),
+          origin = this.matrix[cell_row_index][cell_col_index];
+      return this.mergeHorizontalTargets(origin, target);
+    },
+
+    mergeHorizontal: function(origin, target) {
+      var table = this,
+          origin_indeces = origin.rowIndeces(),
+          target_indeces = target.rowIndeces();
+
+      var neighbor_column_cells = _.compact(
+        origin_indeces.map(function(row_idx) {
+          var cell = table.matrix[row_idx][target.col_index];
+          if (cell.unmerged())
+            return cell;
+        })
+      );
+
+      // only allow merging if the column height is equal
+      if (_.isEqual(origin_indeces, target_indeces)) {
+        table.mergeCell(origin, target);
+
+      // allow merging if column height is higher then target
+      // but target columns are unmerged
+      } else if (origin_indeces.length == neighbor_column_cells.length) {
+        _.forEach(neighbor_column_cells, function(cell) {
+          table.mergeCell(origin, cell);
+        });
+      } else {
+        return;
+      }
     },
 
     mergeRight: function(cell_row_index, cell_col_index) {
-      var table  = this,
-          target = this.matrix[cell_row_index][cell_col_index+1],
+      var target = this._getNextVisibleCell(cell_row_index, cell_col_index),
           origin = this.matrix[cell_row_index][cell_col_index];
-
-      if (_.isObject(target.mergedBy))
-        target = target.mergedBy;
-
-      if (_.isObject(origin.mergedBy))
-        origin = origin.mergedBy;
-
-      var origin_indeces = origin.rowIndeces();
-      var target_indeces = target.rowIndeces();
-      //var origin_top_cell = table.matrix[target_indeces[0]][origin.col_index];
-
-      var target_index = cell_col_index;
-      while (_.includes(origin.allCells(), target) && (target_index <= table.matrix.length)) {
-        target = this.matrix[cell_row_index][target_index];
-        target_index++;
-      }
-      console.log(target_indeces, origin_indeces);
-      // target cell is higher than origin
-      $.each(target_indeces, function(o, index) {
-        var cell = table.matrix[index][origin.col_index];
-        table.mergeRows(origin, cell);
-      });
-
-      // origin cell is higher than target
-      var target_top_cell = table.matrix[target_indeces[0]][target.col_index];
-      $.each(origin_indeces, function(o, index) {
-        var cell = table.matrix[index][target.col_index];
-        if (cell.mergedCells.length) {
-          table.splitColumn(index, target.col_index);
-        }
-        table.mergeRows(target_top_cell, cell);
-      });
-
-      this.mergeCell(origin, target);
+      this.mergeHorizontal(origin, target);
     },
 
     mergeLeft: function(cell_row_index, cell_col_index) {
-      var table  = this,
-          target = this.matrix[cell_row_index][cell_col_index-1],
+      var target = this._getPreviousVisibleCell(cell_row_index, cell_col_index),
           origin = this.matrix[cell_row_index][cell_col_index];
 
       if (_.isObject(target.mergedBy))
         target = target.mergedBy;
 
-      var target_index = cell_col_index;
-      while (_.includes(origin.allCells(), target) && (target_index >= 0)) {
-        target = this.matrix[cell_row_index][target_index];
-        target_index--;
-      }
-
-      var origin_indeces = origin.rowIndeces();
-      var target_indeces = target.rowIndeces();
-      var origin_top_cell = table.matrix[target_indeces[0]][origin.col_index];
-
-      // target cell is higher than origin
-      $.each(target_indeces, function(o, index) {
-        var cell = table.matrix[index][origin.col_index];
-        table.mergeRows(origin_top_cell, cell);
-      });
-
-      // origin cell is higher than target
-      var target_top_cell = table.matrix[target_indeces[0]][target.col_index];
-      $.each(origin_indeces, function(o, index) {
-        var cell = table.matrix[index][target.col_index];
-        table.mergeRows(target_top_cell, cell);
-      });
-
-      this.mergeCell(origin_top_cell, target);
+      this.mergeHorizontal(origin, target);
     },
 
     mergeBottom: function(cell_row_index, cell_col_index) {
@@ -741,6 +742,7 @@ $(function() {
       target.mergedBy = origin;
       origin.rowspan += target.rowspan;
       target.rowspan = 0;
+      target.colspan = 0;
     },
 
     mergeCell: function(origin, target) {
@@ -749,12 +751,17 @@ $(function() {
         target = target.mergedBy;
 
       if (origin == target) return;
-      //target.mergedCells = []
+
+      // increase colspan only if cell does not yet span target
+      if (origin.colIndeces().indexOf(target.col_index) == -1) {
+        origin.colspan += target.colspan;
+      }
+
       origin.mergedCells.push(target);
       target.mergedBy = origin;
       this.mergeContent(origin, target);
-      origin.colspan++;
-      target.colspan--;
+      target.colspan = 0;
+      target.rowspan = 0;
     },
 
     splitColumn: function(cell_row_index, cell_col_index) {
@@ -849,7 +856,6 @@ $(function() {
             });
           }
         });
-
         $tableEl.append($row_el);
       });
 

@@ -1,5 +1,3 @@
-// Reference: https://tabletag.net/
-
 describe('TableWidget', function () {
 
   beforeEach(function() {
@@ -113,7 +111,7 @@ describe('TableWidget', function () {
     expect($("#table td, th").length).toBe(9)
   });
 
-  it('merges 0/0-0/1 into 1/1-2/1', function() {
+  it('fails to merge 0/0-0/1 into 1/1-2/1', function() {
     var widget = $("#table").edit_table();
 
     widget.edit_table('mergeBottom', 0, 0);
@@ -121,7 +119,7 @@ describe('TableWidget', function () {
     widget.edit_table('mergeRight', 0, 0);
     widget.edit_table('renderHtml');
 
-    expect($("#table td, th").length).toBe(9)
+    expect($("#table td, th").length).toBe(10)
   });
 
   it('merges 0/0-1/0 into 0/1-1/1', function() {
@@ -157,22 +155,32 @@ describe('TableWidget', function () {
     expect($("#table td, th").length).toBe(10)
   });
 
-  it('merges 1/3 into 1/2-2/2', function() {
+  it('fails to merge 1/3 into 1/2-2/2', function() {
     var widget = $("#table").edit_table();
 
     widget.edit_table('mergeBottom', 1, 2);
     widget.edit_table('mergeLeft', 1, 3);
     widget.edit_table('renderHtml');
 
-    expect($("#table td, th").length).toBe(9)
+    expect($("#table td, th").length).toBe(11)
   });
 
-  it('merges 0/2 into 1/2 -> 0/2-1/2 left -> 0/0 right', function() {
+  it('fails to merge 0/2 into 1/2 -> 0/2-1/2 left -> 0/0 right', function() {
     var widget = $("#table").edit_table();
 
     widget.edit_table('mergeBottom', 0, 2);
     widget.edit_table('mergeLeft', 0, 2);
     widget.edit_table('mergeRight', 0, 0);
+    widget.edit_table('renderHtml');
+    expect($("#table td, th").length).toBe(9)
+  });
+
+  it('merges 0/2 into 1/2 -> 0/2-1/2 left -> left', function() {
+    var widget = $("#table").edit_table();
+
+    widget.edit_table('mergeBottom', 0, 2);
+    widget.edit_table('mergeLeft', 0, 2);
+    widget.edit_table('mergeLeft', 0, 2);
     widget.edit_table('renderHtml');
     expect($("#table td, th").length).toBe(7)
   });
